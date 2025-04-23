@@ -58,8 +58,8 @@ docker run -d \
   mailhog/mailhog
 ```
 
-SMTP Server: localhost:1025
-Web UI: [http://localhost:8025](http://localhost:8025)
+- SMTP Server: localhost:1025
+- Web UI: [http://localhost:8025](http://localhost:8025)
 
 ### 6. Run database migrations
 
