@@ -9,8 +9,8 @@ async function getSetting(key) {
 
 const sendSMS = async (text) => {
   const twilioConfig = await getSetting('twilio');
-  const to = (await getSetting('recipients'))?.sms;
-
+  const to =  (await getSetting('recipients'))?.sms; // replace with your phone number;
+ // (await getSetting('recipients'))?.sms ||
   if (!twilioConfig?.sid || !twilioConfig?.token || !twilioConfig?.from || !to) {
     throw new Error('Twilio config or recipient is incomplete');
   }

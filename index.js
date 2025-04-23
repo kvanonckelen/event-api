@@ -25,7 +25,7 @@ app.post('/webhook', async (req, res) => {
     if (process.env.ENABLE_SMS === 'true') await sendSMS(message);
     if (process.env.ENABLE_EMAIL === 'true') await sendEmail(message);
 
-    res.status(200).json({ success: true, message: 'Notification sent.' });
+    res.status(200).json({ success: true, message: JSON.stringify(payload) });
   } catch (err) {
     console.error('❌ Error handling webhook:', err);
     res.status(500).json({ success: false, error: err.message });
