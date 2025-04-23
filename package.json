@@ -15,7 +15,9 @@
   "type": "expressjs",
   "main": "index.js",
   "scripts": {
-    "test": "nodemon index.js"
+    "test": "nodemon index.js",
+    "dev": "nodemon index.js",
+    "start": "node index.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

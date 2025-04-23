@@ -9,7 +9,7 @@ async function getSetting(key) {
 
 const sendSMS = async (text) => {
   const twilioConfig = await getSetting('twilio');
-  const to =  (await getSetting('recipients'))?.sms; // replace with your phone number;
+  const to = (await getSetting('recipients'))?.sms || process.env.MY_PHONE_NUMBER;
  // (await getSetting('recipients'))?.sms ||
   if (!twilioConfig?.sid || !twilioConfig?.token || !twilioConfig?.from || !to) {
     throw new Error('Twilio config or recipient is incomplete');
@@ -26,7 +26,7 @@ const sendSMS = async (text) => {
 
 const sendEmail = async (text) => {
   const smtp = await getSetting('smtp');
-  const to = (await getSetting('recipients'))?.email;
+  const to = (await getSetting('recipients'))?.email || process.env.MY_EMAIL; // replace with your email
 
   if (!smtp?.host || !smtp?.port || !to) {
     throw new Error('SMTP config or recipient is incomplete');
