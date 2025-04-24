@@ -65,8 +65,6 @@ function verifyWebhook(req, source) {
         return true;
     }
   }
-console.log("🔐 Signature received:", signature);
-console.log("🔐 Signature expected:", expected);
   
 
 function verifyHMAC(body, signature, secret, algo) {
