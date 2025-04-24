@@ -8,7 +8,11 @@ async function getSetting(key) {
 }
 
 const sendSMS = async (text) => {
-  const twilioConfig = await getSetting('twilio');
+  const twilioConfig = await getSetting('twilio')  || {
+    sid: process.env.TWILIO_SID,
+    token: process.env.TWILIO_AUTH_TOKEN,
+    from: process.env.TWILIO_PHONE_NUMBER,
+  };
   const to = (await getSetting('recipients'))?.sms || process.env.MY_PHONE_NUMBER;
  // (await getSetting('recipients'))?.sms ||
   if (!twilioConfig?.sid || !twilioConfig?.token || !twilioConfig?.from || !to) {
