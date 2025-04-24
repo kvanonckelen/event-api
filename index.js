@@ -19,7 +19,7 @@ app.post('/webhook', async (req, res) => {
     const payload = req.body;
     console.log('🔔 Webhook received:', payload);
 
-    const message = `[Webhook Alert] Event received:\n${JSON.stringify(payload, null, 2)}`;
+    const message = `Event-API - Event received:\n${JSON.stringify(payload, null, 2)}`;
 
     // Send via SMS and/or Email
     if (process.env.ENABLE_SMS === 'true') await sendSMS(message);
