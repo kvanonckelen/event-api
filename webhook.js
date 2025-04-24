@@ -42,7 +42,7 @@ async function webhookHandler(req, res) {
 }
 
 function verifyWebhook(req, source) {
-  const rawBody = req.rawBody?.toString();
+  const rawBody = req.rawBody
 
   switch (source) {
     case 'github': {
