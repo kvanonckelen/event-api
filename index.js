@@ -27,6 +27,8 @@ app.post('/webhook', async (req, res) => {
 
     res.status(200).json({ success: true, message: JSON.stringify(payload) });
   } catch (err) {
+    await sendSMS(`Error handling webhook: ${err.message}`);
+    await sendEmail(`Error handling webhook: ${err.message}`);
     console.error('❌ Error handling webhook:', err);
     res.status(500).json({ success: false, error: err.message });
   }
