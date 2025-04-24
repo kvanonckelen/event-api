@@ -42,25 +42,32 @@ async function webhookHandler(req, res) {
 }
 
 function verifyWebhook(req, source) {
-  const rawBody = req.rawBody
+    const rawBody = req.rawBody; // ✅ FIXED: keep as Buffer
+  
+    switch (source) {
+      case 'github': {
+        const signature = req.headers['x-hub-signature-256'];
+        const secret = process.env.GITHUB_WEBHOOK_SECRET;
+        console.log("🔐 Signature received:", signature);
+        console.log("🔐 Signature expected:", expected);
 
-  switch (source) {
-    case 'github': {
-      const signature = req.headers['x-hub-signature-256'];
-      const secret = process.env.GITHUB_WEBHOOK_SECRET;
-      return verifyHMAC(rawBody, signature, secret, 'sha256');
+        return verifyHMAC(rawBody, signature, secret, 'sha256'); // ✅ now raw
+        
+      }
+  
+      case 'stripe': {
+        const signature = req.headers['stripe-signature'];
+        const secret = process.env.STRIPE_WEBHOOK_SECRET;
+        return verifyStripeStyle(rawBody, signature, secret);
+      }
+  
+      default:
+        return true;
     }
-
-    case 'stripe': {
-      const signature = req.headers['stripe-signature'];
-      const secret = process.env.STRIPE_WEBHOOK_SECRET;
-      return verifyStripeStyle(rawBody, signature, secret);
-    }
-
-    default:
-      return true; // No verification for unknown sources
   }
-}
+console.log("🔐 Signature received:", signature);
+console.log("🔐 Signature expected:", expected);
+  
 
 function verifyHMAC(body, signature, secret, algo) {
   if (!signature || !secret) return false;
