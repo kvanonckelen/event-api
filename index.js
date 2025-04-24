@@ -11,7 +11,6 @@ const webhookRouter = require('./webhook');
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(cors({allowOrigin: true, origin: "*"}));
-app.use(express.json());
 app.use("/api", authRoutes);
 
 app.use(bodyParser.json());
