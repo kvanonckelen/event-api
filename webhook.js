@@ -49,7 +49,6 @@ function verifyWebhook(req, source) {
         const signature = req.headers['x-hub-signature-256'];
         const secret = process.env.GITHUB_WEBHOOK_SECRET;
         console.log("🔐 Signature received:", signature);
-        console.log("🔐 Signature expected:", expected);
 
         return verifyHMAC(rawBody, signature, secret, 'sha256'); // ✅ now raw
         
