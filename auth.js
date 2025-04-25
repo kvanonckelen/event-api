@@ -6,15 +6,10 @@ const authMiddleware = require("./authMiddleware");
 
 const router = express.Router();
 
-const USER = {
-  username: "admin",
-  // Store a bcrypt-hashed password instead of plain text
-  passwordHash: bcrypt.hashSync("admin", 10),
-};
-
 // POST /api/login
 router.post("/login", async (req, res) => {
     const { username, password } = req.body;
+    
     const user = await User.findOne({ where: { username } });
   
     if (!user) return res.status(401).json({ message: "Invalid credentials" });

@@ -8,13 +8,15 @@ const PORT = process.env.PORT
 const BASE_URL = process.env.BASE_URL;
 const authRoutes = require("./auth");
 const webhookRouter = require('./webhook');
+const eventRoutes = require('./events');
 
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(cors({allowOrigin: true, origin: "*"}));
-app.use("/api", authRoutes);
+app.use("/api", express.json(), authRoutes);
 
 app.use('/webhook', webhookRouter);
+app.use('/api/events', eventRoutes);
 
 app.listen(PORT, () => {
   console.log(`🚀 Webhook server running at ${BASE_URL}:${PORT}`);

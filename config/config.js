@@ -5,7 +5,7 @@ module.exports = {
   "development": {
     storage: path.resolve(__dirname, "../database/database.sqlite"),
     dialect: "sqlite",
-    logging: true,
+    logging: false,
   },
   "production": {
     "username": process.env.DB_USERNAME || "root",

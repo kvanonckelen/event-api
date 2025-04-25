@@ -2,10 +2,12 @@ const express = require('express');
 const crypto = require('crypto');
 const router = express.Router();
 const { sendSMS, sendEmail } = require('./notifier');
-const eventStore = new Map(); // key: UUID, value: payload
 const { v4: uuidv4 } = require('uuid');
 const jwt = require('jsonwebtoken');
-const authMiddleware = require('./authMiddleware');
+const {Setting} = require('./models'); // Adjust path if needed
+
+const {Event} = require('./models'); // Adjust path if needed
+const e = require('express');
 
 // Handle /webhook (no specific source)
 router.post('/', express.json({ verify: (req, res, buf) => { req.rawBody = buf } }), async (req, res) => {
@@ -18,20 +20,17 @@ router.post('/:source', express.json({ verify: (req, res, buf) => { req.rawBody 
   return webhookHandler(req, res);
 });
 
-router.get('/event/:id',authMiddleware, (req, res) => {
-    const event = eventStore.get(req.params.id);
-    if (!event) return res.status(404).send('Event not found');
+async function getSetting(key) {
+    const setting = await Setting.findOne({ where: { key } });
+    return setting ? JSON.parse(setting.value) : null;
+  }
+
   
-    res.setHeader('Content-Type', 'application/json');
-    res.send(JSON.stringify(event, null, 2));
-  });
-
-
+  
   async function webhookHandler(req, res) {
     const source = req.params.source || detectSource(req);
     const payload = req.body;
-  
-    console.log(`🔔 Webhook received from ${source || 'unknown'}:`, payload);
+    const enabled = await getSetting('enabled')
   
     try {
       if (!verifyWebhook(req, source)) {
@@ -41,20 +40,31 @@ router.get('/event/:id',authMiddleware, (req, res) => {
   
       const eventType = getEventType(req, source);
       const id = uuidv4();
-      eventStore.set(id, payload);
+      const timestamp = new Date().toISOString();
   
-      const baseUrl = process.env.BASE_URL;
-  
-      // 🔐 Create a short-lived JWT token for secure access
+      // 🔐 Create JWT token for secure detail view
       const token = jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '10m' });
   
-      // 📎 Include token as query parameter
-      const link = `${baseUrl}/webhook/event/${id}?token=${token}`;
+      // 💾 Store everything in one object
+      Event.create({
+        id,
+        timestamp,
+        source,
+        eventType,
+        ip: req.headers['x-forwarded-for'] || req.socket.remoteAddress,
+        headers: req.headers,
+        payload,
+        token,
+        status: "received"
+      });
+  
+      const baseUrl = process.env.BASE_URL;
+      const link = `http://localhost:3001/event/${id}?token=${token}`;
   
       const message = `[${source?.toUpperCase() || 'Webhook'}] ${eventType} received.\nView full payload: ${link}`;
   
-      if (process.env.ENABLE_SMS === 'true') await sendSMS(message);
-      if (process.env.ENABLE_EMAIL === 'true') await sendEmail(message);
+      if (enabled.sms) await sendSMS(message);
+      if (enabled.email) await sendEmail(message);
   
       res.status(200).json({ success: true });
     } catch (err) {
@@ -64,6 +74,7 @@ router.get('/event/:id',authMiddleware, (req, res) => {
       res.status(500).json({ error: err.message });
     }
   }
+  
 
 function verifyWebhook(req, source) {
     const rawBody = req.rawBody; // ✅ FIXED: keep as Buffer
@@ -122,3 +133,4 @@ function getEventType(req, source) {
 }
 
 module.exports = router;
+

@@ -107,5 +107,8 @@ curl -X POST http://localhost:3001/api/login \
 { "token": "your.jwt.token" }
 ```
 
+## 📄 License
+MIT © Kevin Van Onckelen
+
 
 

@@ -8,15 +8,15 @@ async function getSetting(key) {
 }
 
 const sendSMS = async (text) => {
-  const twilioConfig = await getSetting('twilio')  || {
-    sid: process.env.TWILIO_SID,
-    token: process.env.TWILIO_AUTH_TOKEN,
-    from: process.env.TWILIO_PHONE_NUMBER,
-  };
+  var twilioConfig = await getSetting('twilio')
   const to = (await getSetting('recipients'))?.sms || process.env.MY_PHONE_NUMBER;
  // (await getSetting('recipients'))?.sms ||
   if (!twilioConfig?.sid || !twilioConfig?.token || !twilioConfig?.from || !to) {
-    throw new Error('Twilio config or recipient is incomplete');
+    twilioConfig = {
+        sid: process.env.TWILIO_SID,
+        token: process.env.TWILIO_AUTH_TOKEN,
+        from: process.env.TWILIO_PHONE_NUMBER,
+      };
   }
 
   const client = twilio(twilioConfig.sid, twilioConfig.token);
