@@ -2,6 +2,9 @@ const express = require('express');
 const crypto = require('crypto');
 const router = express.Router();
 const { sendSMS, sendEmail } = require('./notifier');
+const eventStore = new Map(); // key: UUID, value: payload
+const { v4: uuidv4 } = require('uuid');
+
 
 // Handle /webhook (no specific source)
 router.post('/', express.json({ verify: (req, res, buf) => { req.rawBody = buf } }), async (req, res) => {
@@ -13,6 +16,15 @@ router.post('/', express.json({ verify: (req, res, buf) => { req.rawBody = buf }
 router.post('/:source', express.json({ verify: (req, res, buf) => { req.rawBody = buf } }), async (req, res) => {
   return webhookHandler(req, res);
 });
+
+router.get('/event/:id', (req, res) => {
+    const event = eventStore.get(req.params.id);
+    if (!event) return res.status(404).send('Event not found');
+  
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify(event, null, 2));
+  });
+
 
 async function webhookHandler(req, res) {
   const source = req.params.source || detectSource(req);
@@ -27,10 +39,17 @@ async function webhookHandler(req, res) {
     }
 
     const eventType = getEventType(req, source);
-    const message = `[${source?.toUpperCase() || 'Webhook'}] ${eventType}:\n${JSON.stringify(payload, null, 2)}`;
-
+    const id = uuidv4();
+    eventStore.set(id, payload); // Store it for later view
+    
+    const baseUrl = process.env.BASE_URL
+    const link = `${baseUrl}/webhook/event/${id}`;
+    
+    const message = `[${source?.toUpperCase() || 'Webhook'}] ${eventType} received.\nView full payload: ${link}`;
+    
     if (process.env.ENABLE_SMS === 'true') await sendSMS(message);
     if (process.env.ENABLE_EMAIL === 'true') await sendEmail(message);
+    
 
     res.status(200).json({ success: true });
   } catch (err) {
