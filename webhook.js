@@ -4,7 +4,8 @@ const router = express.Router();
 const { sendSMS, sendEmail } = require('./notifier');
 const eventStore = new Map(); // key: UUID, value: payload
 const { v4: uuidv4 } = require('uuid');
-
+const jwt = require('jsonwebtoken');
+const authMiddleware = require('./authMiddleware');
 
 // Handle /webhook (no specific source)
 router.post('/', express.json({ verify: (req, res, buf) => { req.rawBody = buf } }), async (req, res) => {
@@ -17,7 +18,7 @@ router.post('/:source', express.json({ verify: (req, res, buf) => { req.rawBody 
   return webhookHandler(req, res);
 });
 
-router.get('/event/:id', (req, res) => {
+router.get('/event/:id',authMiddleware, (req, res) => {
     const event = eventStore.get(req.params.id);
     if (!event) return res.status(404).send('Event not found');
   
@@ -26,39 +27,43 @@ router.get('/event/:id', (req, res) => {
   });
 
 
-async function webhookHandler(req, res) {
-  const source = req.params.source || detectSource(req);
-  const payload = req.body;
-
-  console.log(`🔔 Webhook received from ${source || 'unknown'}:`, payload);
-
-  try {
-    if (!verifyWebhook(req, source)) {
-      console.warn("⚠️ Invalid webhook signature");
-      return res.status(401).json({ error: 'Invalid signature' });
+  async function webhookHandler(req, res) {
+    const source = req.params.source || detectSource(req);
+    const payload = req.body;
+  
+    console.log(`🔔 Webhook received from ${source || 'unknown'}:`, payload);
+  
+    try {
+      if (!verifyWebhook(req, source)) {
+        console.warn("⚠️ Invalid webhook signature");
+        return res.status(401).json({ error: 'Invalid signature' });
+      }
+  
+      const eventType = getEventType(req, source);
+      const id = uuidv4();
+      eventStore.set(id, payload);
+  
+      const baseUrl = process.env.BASE_URL;
+  
+      // 🔐 Create a short-lived JWT token for secure access
+      const token = jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '10m' });
+  
+      // 📎 Include token as query parameter
+      const link = `${baseUrl}/webhook/event/${id}?token=${token}`;
+  
+      const message = `[${source?.toUpperCase() || 'Webhook'}] ${eventType} received.\nView full payload: ${link}`;
+  
+      if (process.env.ENABLE_SMS === 'true') await sendSMS(message);
+      if (process.env.ENABLE_EMAIL === 'true') await sendEmail(message);
+  
+      res.status(200).json({ success: true });
+    } catch (err) {
+      console.error('❌ Webhook error:', err);
+      if (process.env.ENABLE_SMS === 'true') await sendSMS(`Webhook error: ${err.message}`);
+      if (process.env.ENABLE_EMAIL === 'true') await sendEmail(`Webhook error: ${err.message}`);
+      res.status(500).json({ error: err.message });
     }
-
-    const eventType = getEventType(req, source);
-    const id = uuidv4();
-    eventStore.set(id, payload); // Store it for later view
-    
-    const baseUrl = process.env.BASE_URL
-    const link = `${baseUrl}/webhook/event/${id}`;
-    
-    const message = `[${source?.toUpperCase() || 'Webhook'}] ${eventType} received.\nView full payload: ${link}`;
-    
-    if (process.env.ENABLE_SMS === 'true') await sendSMS(message);
-    if (process.env.ENABLE_EMAIL === 'true') await sendEmail(message);
-    
-
-    res.status(200).json({ success: true });
-  } catch (err) {
-    console.error('❌ Webhook error:', err);
-    if (process.env.ENABLE_SMS === 'true') await sendSMS(`Webhook error: ${err.message}`);
-    if (process.env.ENABLE_EMAIL === 'true') await sendEmail(`Webhook error: ${err.message}`);
-    res.status(500).json({ error: err.message });
   }
-}
 
 function verifyWebhook(req, source) {
     const rawBody = req.rawBody; // ✅ FIXED: keep as Buffer
