@@ -13,8 +13,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(cors({allowOrigin: true, origin: "*"}));
 app.use("/api", authRoutes);
 
-app.use(bodyParser.json());
-
 app.use('/webhook', webhookRouter);
 
 app.listen(PORT, () => {
